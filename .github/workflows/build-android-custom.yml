@@ -1,0 +1,53 @@
+name: Build Eden Android Custom
+
+on:
+  push:
+    branches:
+      - eden-game-mode
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Eden
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android build dependencies
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "ndk;28.2.13676358" \
+            "cmake;3.31.6"
+
+      - name: Build Genshin Spoof
+        run: |
+          chmod +x .ci/android/build.sh
+          ./.ci/android/build.sh -t optimized -b Release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Eden-GenshinSpoof-Custom
+          path: artifacts/*.apk
+          if-no-files-found: error
