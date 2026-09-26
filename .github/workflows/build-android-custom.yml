@@ -44,14 +44,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y glslang-tools
           glslangValidator --version
-      - name: Build Genshin Spoof
+      - name: Build Eden Standard
         run: |
           chmod +x .ci/android/build.sh
-          ./.ci/android/build.sh -t optimized -b Release
+          ./.ci/android/build.sh -t standard -b Release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Eden-GenshinSpoof-Custom
+          name: Eden-Standard-Custom
           path: artifacts/*.apk
           if-no-files-found: error
