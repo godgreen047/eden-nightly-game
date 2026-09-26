@@ -47,7 +47,8 @@ jobs:
       - name: Build Eden Standard
         run: |
           chmod +x .ci/android/build.sh
-          ./.ci/android/build.sh -t standard -b Release
+          ./.ci/android/build.sh -t standard -b Release 
+          -DENABLE_LTO=ON
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
