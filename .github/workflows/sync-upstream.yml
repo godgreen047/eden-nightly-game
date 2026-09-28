@@ -1,0 +1,66 @@
+name: Sync Eden Upstream
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout custom branch
+        uses: actions/checkout@v4
+        with:
+          ref: eden-game-mode
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch Eden upstream
+        run: |
+          git remote add upstream https://github.com/eden-emulator/mirror.git || true
+          git fetch upstream master
+
+      - name: Check for upstream updates
+        id: check
+        run: |
+          LOCAL=$(git rev-parse HEAD)
+          UPSTREAM=$(git rev-parse upstream/master)
+
+          echo "Current eden-game-mode: $LOCAL"
+          echo "Current Eden upstream: $UPSTREAM"
+
+          if git merge-base --is-ancestor "$UPSTREAM" HEAD; then
+            echo "has_updates=false" >> "$GITHUB_OUTPUT"
+            echo "eden-game-mode already contains the latest upstream commit."
+          else
+            echo "has_updates=true" >> "$GITHUB_OUTPUT"
+            echo "New upstream commits detected."
+          fi
+
+      - name: Merge Eden upstream
+        if: steps.check.outputs.has_updates == 'true'
+        run: |
+          git merge upstream/master --no-edit
+
+      - name: Push updated custom branch
+        if: steps.check.outputs.has_updates == 'true'
+        run: |
+          git push origin HEAD:eden-game-mode
+
+      - name: Start Android custom build
+        if: steps.check.outputs.has_updates == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run build-android-custom.yml --ref eden-game-mode
