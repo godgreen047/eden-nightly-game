@@ -1,4 +1,5 @@
 name: Build Eden Android Custom
+run-name: Build Eden Android Custom - ${{ github.ref_name }}
 
 on:
   push:
