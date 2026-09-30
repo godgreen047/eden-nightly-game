@@ -63,4 +63,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh workflow run build-android-custom.yml --ref eden-game-mode
+          gh workflow run build-android-custom.yml --repo godgreen047/eden-nightly-game --ref eden-game-mode
