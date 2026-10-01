@@ -24,11 +24,16 @@ jobs:
           fetch-tags: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Revert ro.cpp to stable v1.0.0 state for repair test
+      - name: Revert runtime files to stable v1.0.0 state for repair test 2
         run: |
-          git checkout c2f6475740cf890c96f4b2f90c96f01112477bdf -- src/core/hle/service/ro/ro.cpp
-          echo "ro.cpp reverted to stable commit c2f6475740cf890c96f4b2f90c96f01112477bdf for this build only"
-          git diff -- src/core/hle/service/ro/ro.cpp | head -n 120 || true
+          STABLE_COMMIT=c2f6475740cf890c96f4b2f90c96f01112477bdf
+          git checkout $STABLE_COMMIT -- src/core/hle/service/ro/ro.cpp
+          git checkout $STABLE_COMMIT -- src/core/memory.cpp
+          git checkout $STABLE_COMMIT -- src/video_core/gpu.cpp
+          git checkout $STABLE_COMMIT -- src/video_core/gpu.h
+          git checkout $STABLE_COMMIT -- src/common/settings_enums.h
+          echo "Runtime files reverted to stable commit $STABLE_COMMIT for this build only"
+          git diff -- src/core/hle/service/ro/ro.cpp src/core/memory.cpp src/video_core/gpu.cpp src/video_core/gpu.h src/common/settings_enums.h | head -n 200 || true
 
       - name: Set build information
         run: |
@@ -47,7 +52,7 @@ jobs:
           echo "Short commit: $EDEN_SHORT"
           echo "Build date: $BUILD_DATE"
           echo "LTO: OFF"
-          echo "Repair test: ro.cpp reverted to c2f6475740"
+          echo "Repair test: runtime files reverted to c2f6475740"
           echo "================================"
 
       - name: Create build information file
@@ -55,7 +60,7 @@ jobs:
           mkdir -p artifacts
 
           cat > artifacts/BUILD_INFO.txt <<EOF
-          Eden Game Booster Repair Test 1
+          Eden Game Booster Repair Test 2
 
           Eden upstream/custom commit:
           $EDEN_COMMIT
@@ -73,9 +78,16 @@ jobs:
           ENABLED
 
           Repair change:
-          ro.cpp reverted to stable v1.0.0 state
+          runtime files reverted to stable v1.0.0 state
 
-          Stable ro.cpp source commit:
+          Reverted files:
+          src/core/hle/service/ro/ro.cpp
+          src/core/memory.cpp
+          src/video_core/gpu.cpp
+          src/video_core/gpu.h
+          src/common/settings_enums.h
+
+          Stable source commit:
           c2f6475740cf890c96f4b2f90c96f01112477bdf
 
           Branch:
@@ -110,7 +122,7 @@ jobs:
           sudo apt-get install -y glslang-tools
           glslangValidator --version
 
-      - name: Build Eden Standard No LTO Repair Test 1
+      - name: Build Eden Standard No LTO Repair Test 2
         run: |
           chmod +x .ci/android/build.sh
           ./.ci/android/build.sh -t standard -b Release
@@ -118,7 +130,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Eden-Standard-RepairTest1-rocpp-stable-NoLTO
+          name: Eden-Standard-RepairTest2-runtime-stable-NoLTO
           path: |
             artifacts/*.apk
             artifacts/BUILD_INFO.txt
