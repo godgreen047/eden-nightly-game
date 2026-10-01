@@ -24,6 +24,12 @@ jobs:
           fetch-tags: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Revert ro.cpp to stable v1.0.0 state for repair test
+        run: |
+          git checkout c2f6475740cf890c96f4b2f90c96f01112477bdf -- src/core/hle/service/ro/ro.cpp
+          echo "ro.cpp reverted to stable commit c2f6475740cf890c96f4b2f90c96f01112477bdf for this build only"
+          git diff -- src/core/hle/service/ro/ro.cpp | head -n 120 || true
+
       - name: Set build information
         run: |
           EDEN_COMMIT=$(git rev-parse HEAD)
@@ -41,6 +47,7 @@ jobs:
           echo "Short commit: $EDEN_SHORT"
           echo "Build date: $BUILD_DATE"
           echo "LTO: OFF"
+          echo "Repair test: ro.cpp reverted to c2f6475740"
           echo "================================"
 
       - name: Create build information file
@@ -48,7 +55,7 @@ jobs:
           mkdir -p artifacts
 
           cat > artifacts/BUILD_INFO.txt <<EOF
-          Eden Game Booster No-LTO Test
+          Eden Game Booster Repair Test 1
 
           Eden upstream/custom commit:
           $EDEN_COMMIT
@@ -64,6 +71,12 @@ jobs:
 
           Game Booster modification:
           ENABLED
+
+          Repair change:
+          ro.cpp reverted to stable v1.0.0 state
+
+          Stable ro.cpp source commit:
+          c2f6475740cf890c96f4b2f90c96f01112477bdf
 
           Branch:
           $GITHUB_REF_NAME
@@ -97,7 +110,7 @@ jobs:
           sudo apt-get install -y glslang-tools
           glslangValidator --version
 
-      - name: Build Eden Standard No LTO
+      - name: Build Eden Standard No LTO Repair Test 1
         run: |
           chmod +x .ci/android/build.sh
           ./.ci/android/build.sh -t standard -b Release
@@ -105,7 +118,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Eden-Standard-NoLTO-Test
+          name: Eden-Standard-RepairTest1-rocpp-stable-NoLTO
           path: |
             artifacts/*.apk
             artifacts/BUILD_INFO.txt
