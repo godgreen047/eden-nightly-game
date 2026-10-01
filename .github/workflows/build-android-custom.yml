@@ -40,7 +40,7 @@ jobs:
           echo "Commit: $EDEN_COMMIT"
           echo "Short commit: $EDEN_SHORT"
           echo "Build date: $BUILD_DATE"
-          echo "LTO: ON"
+          echo "LTO: OFF"
           echo "================================"
 
       - name: Create build information file
@@ -48,7 +48,7 @@ jobs:
           mkdir -p artifacts
 
           cat > artifacts/BUILD_INFO.txt <<EOF
-          Eden Game Booster LTO
+          Eden Game Booster No-LTO Test
 
           Eden upstream/custom commit:
           $EDEN_COMMIT
@@ -60,7 +60,7 @@ jobs:
           $BUILD_DATE
 
           LTO:
-          ON
+          OFF
 
           Game Booster modification:
           ENABLED
@@ -97,15 +97,15 @@ jobs:
           sudo apt-get install -y glslang-tools
           glslangValidator --version
 
-      - name: Build Eden Standard LTO
+      - name: Build Eden Standard No LTO
         run: |
           chmod +x .ci/android/build.sh
-          YUZU_ANDROID_ARGS="-DENABLE_LTO=ON" ./.ci/android/build.sh -t standard -b Release
+          ./.ci/android/build.sh -t standard -b Release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Eden-Standard-LTO
+          name: Eden-Standard-NoLTO-Test
           path: |
             artifacts/*.apk
             artifacts/BUILD_INFO.txt
