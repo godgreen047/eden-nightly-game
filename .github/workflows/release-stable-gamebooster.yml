@@ -144,10 +144,8 @@ jobs:
           - Sin LTO.
           - Sin parches experimentales adicionales.
 
-          ## Probado inicialmente en
-          - Samsung Galaxy S22 Ultra Snapdragon 8 Gen 1.
-          - Android 14 / One UI.
-          - Super Mario 3D World: 60 FPS con bajones puntuales por carga de shaders.
+          ## Recomendación
+          El rendimiento puede variar según dispositivo, versión de Android/One UI, driver Turnip, configuración del emulador, juego y temperatura. Se recomienda probar con buena refrigeración y conservar respaldo de configuraciones previas.
 
           ## Nota
           Esta es una build no oficial/experimental de comunidad. Haz respaldo de tus datos antes de reemplazar otra instalación de Eden.
