@@ -1,9 +1,11 @@
 name: Build Eden Android Custom
+run-name: Build Eden Android Custom - ${{ github.ref_name }}
 
 on:
   push:
     branches:
       - eden-game-mode
+      - eden-nightly-test
 
   workflow_dispatch:
 
@@ -40,6 +42,7 @@ jobs:
           echo "Short commit: $EDEN_SHORT"
           echo "Build date: $BUILD_DATE"
           echo "LTO: ON"
+          echo "Branch: $GITHUB_REF_NAME"
           echo "================================"
 
       - name: Create build information file
@@ -104,7 +107,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Eden-Standard-LTO
+          name: Eden-Standard-LTO-${{ github.ref_name }}
           path: |
             artifacts/*.apk
             artifacts/BUILD_INFO.txt
