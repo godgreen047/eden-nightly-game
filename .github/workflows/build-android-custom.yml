@@ -71,6 +71,9 @@ jobs:
           Release type:
           Artifact-only test build. Do not publish as public release until tested.
 
+          Test policy:
+          Validate game launch stability before creating any GitHub Release.
+
           Branch:
           $GITHUB_REF_NAME
 
