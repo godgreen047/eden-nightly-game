@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - eden-game-mode
+      - eden-nightly-test
 
   workflow_dispatch:
 
@@ -35,12 +36,14 @@ jobs:
           echo "BUILD_DATE=$BUILD_DATE" >> "$GITHUB_ENV"
 
           echo "================================"
-          echo "EDEN BUILD INFORMATION"
+          echo "EDEN NIGHTLY TEST BUILD INFORMATION"
           echo "================================"
           echo "Commit: $EDEN_COMMIT"
           echo "Short commit: $EDEN_SHORT"
           echo "Build date: $BUILD_DATE"
           echo "LTO: ON"
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "Release type: artifact-only test"
           echo "================================"
 
       - name: Create build information file
@@ -48,7 +51,7 @@ jobs:
           mkdir -p artifacts
 
           cat > artifacts/BUILD_INFO.txt <<EOF
-          Eden Game Booster LTO
+          Eden Game Booster Nightly Test LTO
 
           Eden upstream/custom commit:
           $EDEN_COMMIT
@@ -64,6 +67,9 @@ jobs:
 
           Game Booster modification:
           ENABLED
+
+          Release type:
+          Artifact-only test build. Do not publish as public release until tested.
 
           Branch:
           $GITHUB_REF_NAME
@@ -105,7 +111,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Eden-Standard-LTO
+          name: Eden-Nightly-Test-Standard-LTO
           path: |
             artifacts/*.apk
             artifacts/BUILD_INFO.txt
