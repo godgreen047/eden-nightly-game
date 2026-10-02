@@ -1,0 +1,182 @@
+name: Eden Stable Game Booster Release
+run-name: Eden Stable Game Booster Release - ${{ inputs.tag }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag
+        required: true
+        default: v2.0.0-gamebooster-stable
+      release_name:
+        description: Release title
+        required: true
+        default: Eden Game Booster Edition - Stable Update
+      prerelease:
+        description: Mark release as prerelease
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Eden
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set build information
+        run: |
+          EDEN_COMMIT=$(git rev-parse HEAD)
+          EDEN_SHORT=$(git rev-parse --short HEAD)
+          BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+          echo "EDEN_COMMIT=$EDEN_COMMIT" >> "$GITHUB_ENV"
+          echo "EDEN_SHORT=$EDEN_SHORT" >> "$GITHUB_ENV"
+          echo "BUILD_DATE=$BUILD_DATE" >> "$GITHUB_ENV"
+
+          echo "================================"
+          echo "EDEN GAME BOOSTER STABLE UPDATE"
+          echo "================================"
+          echo "Commit: $EDEN_COMMIT"
+          echo "Short commit: $EDEN_SHORT"
+          echo "Build date: $BUILD_DATE"
+          echo "Build type: Standard/Mainline"
+          echo "LTO: OFF"
+          echo "Package: dev.eden.eden_emulator"
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "================================"
+
+      - name: Create build information file
+        run: |
+          mkdir -p artifacts
+
+          cat > artifacts/BUILD_INFO.txt <<EOF
+          Eden Game Booster Edition - Stable Update
+
+          Eden commit:
+          $EDEN_COMMIT
+
+          Short commit:
+          $EDEN_SHORT
+
+          Build date:
+          $BUILD_DATE
+
+          Build type:
+          Standard/Mainline
+
+          LTO:
+          OFF
+
+          Package target:
+          dev.eden.eden_emulator
+
+          Game Booster modification:
+          Minimal package/manifest build for Samsung Game Booster recognition
+
+          Branch:
+          $GITHUB_REF_NAME
+
+          GitHub workflow run:
+          $GITHUB_RUN_NUMBER
+          EOF
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android build dependencies
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "ndk;28.2.13676358" \
+            "cmake;3.31.6"
+
+      - name: Install glslang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools
+          glslangValidator --version
+
+      - name: Build Eden Standard stable update
+        run: |
+          chmod +x .ci/android/build.sh
+          ./.ci/android/build.sh -t standard -b Release
+
+      - name: Rename APK
+        run: |
+          APK_PATH=$(find artifacts -maxdepth 1 -name "*.apk" -type f | head -n 1)
+          test -n "$APK_PATH"
+          mv "$APK_PATH" "artifacts/Eden-GameBooster-Stable-${EDEN_SHORT}.apk"
+          ls -lh artifacts
+
+      - name: Create release notes
+        run: |
+          cat > RELEASE_NOTES.md <<EOF
+          # Eden Game Booster Edition - Stable Update
+
+          Build basada en Eden nightly/master reciente, enfocada en Samsung Game Booster y estabilidad.
+
+          ## Cambios principales
+          - Build Standard/Mainline.
+          - Package objetivo: \`dev.eden.eden_emulator\`.
+          - Game Booster habilitado mediante configuración mínima de Android.
+          - Sin Genshin spoof.
+          - Sin LTO.
+          - Sin parches experimentales adicionales.
+
+          ## Probado inicialmente en
+          - Samsung Galaxy S22 Ultra Snapdragon 8 Gen 1.
+          - Android 14 / One UI.
+          - Super Mario 3D World: 60 FPS con bajones puntuales por carga de shaders.
+
+          ## Nota
+          Esta es una build no oficial/experimental de comunidad. Haz respaldo de tus datos antes de reemplazar otra instalación de Eden.
+          EOF
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Eden-GameBooster-Stable-${{ env.EDEN_SHORT }}
+          path: |
+            artifacts/Eden-GameBooster-Stable-${{ env.EDEN_SHORT }}.apk
+            artifacts/BUILD_INFO.txt
+          if-no-files-found: error
+
+      - name: Create GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          RELEASE_NAME: ${{ inputs.release_name }}
+          PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          FLAGS=""
+          if [ "$PRERELEASE" = "true" ]; then
+            FLAGS="--prerelease"
+          fi
+
+          gh release create "$TAG" \
+            "artifacts/Eden-GameBooster-Stable-${EDEN_SHORT}.apk" \
+            "artifacts/BUILD_INFO.txt" \
+            --title "$RELEASE_NAME" \
+            --notes-file RELEASE_NOTES.md \
+            --target "$GITHUB_SHA" \
+            $FLAGS
