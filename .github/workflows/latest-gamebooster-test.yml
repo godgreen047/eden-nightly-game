@@ -1,0 +1,128 @@
+name: Eden Latest Game Booster Test
+run-name: Eden Latest Game Booster Test - latest upstream
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Eden latest test branch
+        uses: actions/checkout@v4
+        with:
+          ref: eden-gamebooster-latest-test
+          submodules: recursive
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set build information
+        run: |
+          EDEN_COMMIT=$(git rev-parse HEAD)
+          EDEN_SHORT=$(git rev-parse --short HEAD)
+          BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+          echo "EDEN_COMMIT=$EDEN_COMMIT" >> "$GITHUB_ENV"
+          echo "EDEN_SHORT=$EDEN_SHORT" >> "$GITHUB_ENV"
+          echo "BUILD_DATE=$BUILD_DATE" >> "$GITHUB_ENV"
+
+          echo "================================"
+          echo "EDEN LATEST GAME BOOSTER TEST"
+          echo "================================"
+          echo "Commit: $EDEN_COMMIT"
+          echo "Short commit: $EDEN_SHORT"
+          echo "Build date: $BUILD_DATE"
+          echo "Build type: Standard/Mainline"
+          echo "LTO: OFF"
+          echo "Package: dev.eden.eden_emulator"
+          echo "Source branch: eden-gamebooster-latest-test"
+          echo "================================"
+
+      - name: Create build information file
+        run: |
+          mkdir -p artifacts
+
+          cat > artifacts/BUILD_INFO.txt <<EOF
+          Eden Latest Game Booster Test
+
+          Eden commit:
+          $EDEN_COMMIT
+
+          Short commit:
+          $EDEN_SHORT
+
+          Build date:
+          $BUILD_DATE
+
+          Build type:
+          Standard/Mainline
+
+          LTO:
+          OFF
+
+          Package target:
+          dev.eden.eden_emulator
+
+          Source branch:
+          eden-gamebooster-latest-test
+
+          Purpose:
+          Test build based on latest Eden upstream commit for Samsung Game Booster testing.
+
+          GitHub workflow run:
+          $GITHUB_RUN_NUMBER
+          EOF
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android build dependencies
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "ndk;28.2.13676358" \
+            "cmake;3.31.6"
+
+      - name: Install glslang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools
+          glslangValidator --version
+
+      - name: Build Eden Standard latest test
+        run: |
+          chmod +x .ci/android/build.sh
+          ./.ci/android/build.sh -t standard -b Release
+
+      - name: Rename APK
+        run: |
+          APK_PATH=$(find artifacts -maxdepth 1 -name "*.apk" -type f | head -n 1)
+          test -n "$APK_PATH"
+          mv "$APK_PATH" "artifacts/Eden-Latest-GameBooster-Test-${EDEN_SHORT}.apk"
+          ls -lh artifacts
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Eden-Latest-GameBooster-Test-${{ env.EDEN_SHORT }}
+          path: |
+            artifacts/Eden-Latest-GameBooster-Test-${{ env.EDEN_SHORT }}.apk
+            artifacts/BUILD_INFO.txt
+          if-no-files-found: error
