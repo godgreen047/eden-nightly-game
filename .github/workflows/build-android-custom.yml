@@ -24,16 +24,14 @@ jobs:
           fetch-tags: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Revert runtime files to stable v1.0.0 state for repair test 2
+      - name: Integrate Eden upstream nightly of October 16
         run: |
-          STABLE_COMMIT=c2f6475740cf890c96f4b2f90c96f01112477bdf
-          git checkout $STABLE_COMMIT -- src/core/hle/service/ro/ro.cpp
-          git checkout $STABLE_COMMIT -- src/core/memory.cpp
-          git checkout $STABLE_COMMIT -- src/video_core/gpu.cpp
-          git checkout $STABLE_COMMIT -- src/video_core/gpu.h
-          git checkout $STABLE_COMMIT -- src/common/settings_enums.h
-          echo "Runtime files reverted to stable commit $STABLE_COMMIT for this build only"
-          git diff -- src/core/hle/service/ro/ro.cpp src/core/memory.cpp src/video_core/gpu.cpp src/video_core/gpu.h src/common/settings_enums.h | head -n 200 || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch https://git.eden-emu.dev/eden-emu/eden.git master
+          git merge --no-edit FETCH_HEAD
+          git merge-base --is-ancestor e0d47f2790 HEAD || { echo "Required October 16 Nightly commit not found"; exit 1; }
+          git submodule update --init --recursive
 
       - name: Set build information
         run: |
@@ -52,7 +50,7 @@ jobs:
           echo "Short commit: $EDEN_SHORT"
           echo "Build date: $BUILD_DATE"
           echo "LTO: OFF"
-          echo "Repair test: runtime files reverted to c2f6475740"
+          echo "Nightly: October 16 - e0d47f2790 integrated"
           echo "================================"
 
       - name: Create build information file
@@ -60,7 +58,10 @@ jobs:
           mkdir -p artifacts
 
           cat > artifacts/BUILD_INFO.txt <<EOF
-          Eden Game Booster Repair Test 2
+          Eden Game Booster - October 16 Nightly
+
+          Integrated upstream commit:
+          e0d47f2790
 
           Eden upstream/custom commit:
           $EDEN_COMMIT
@@ -75,20 +76,10 @@ jobs:
           OFF
 
           Game Booster modification:
-          ENABLED
+          ENABLED (existing fork configuration)
 
-          Repair change:
-          runtime files reverted to stable v1.0.0 state
-
-          Reverted files:
-          src/core/hle/service/ro/ro.cpp
-          src/core/memory.cpp
-          src/video_core/gpu.cpp
-          src/video_core/gpu.h
-          src/common/settings_enums.h
-
-          Stable source commit:
-          c2f6475740cf890c96f4b2f90c96f01112477bdf
+          Reverted runtime files:
+          NONE
 
           Branch:
           $GITHUB_REF_NAME
@@ -122,7 +113,7 @@ jobs:
           sudo apt-get install -y glslang-tools
           glslangValidator --version
 
-      - name: Build Eden Standard No LTO Repair Test 2
+      - name: Build Eden Standard No LTO October 16 Nightly
         run: |
           chmod +x .ci/android/build.sh
           ./.ci/android/build.sh -t standard -b Release
@@ -130,7 +121,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Eden-Standard-RepairTest2-runtime-stable-NoLTO
+          name: Eden-GameBooster-Oct16-Nightly-NoLTO
           path: |
             artifacts/*.apk
             artifacts/BUILD_INFO.txt
