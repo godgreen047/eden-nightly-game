@@ -29,6 +29,7 @@ jobs:
       - name: Resolve experimental build options
         shell: bash
         run: |
+          echo "EDEN_PERFLAB_VARIANT=${{ matrix.profile }}" >> "$GITHUB_ENV"
           if [ "${{ matrix.profile }}" = "sd8gen1" ]; then
             echo "PRESET=sd8gen1" >> "$GITHUB_ENV"
             echo "TUNING=armv8.2-a+lse+rcpc / cortex-x2" >> "$GITHUB_ENV"
@@ -98,11 +99,22 @@ jobs:
           ReShade: ON
           Game Booster: existing fork configuration
           GitHub run: $GITHUB_RUN_ID
+          Android package ID: dev.eden.eden_emulator.perflab${{ matrix.profile }}
+          App settings/saves/cache isolated from public Eden
           Validation: CPU tuning NOT tested on-device yet
           EOF
           echo "Packaged APK files:"
           ls -lh artifacts/
           test -n "$(find artifacts -maxdepth 1 -name '*.apk' -print -quit)"
+
+      - name: Verify isolated APK application ID
+        shell: bash
+        run: |
+          apk_file="$(find artifacts -maxdepth 1 -name '*.apk' -print -quit)"
+          expected="dev.eden.eden_emulator.perflab${{ matrix.profile }}"
+          actual="$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk_file" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p" | head -n1)"
+          echo "Built APK app ID: $actual"
+          test "$actual" = "$expected" || { echo "APK package ID not isolated!"; exit 1; }
 
       - name: Upload test APK and manifest
         uses: actions/upload-artifact@v4
