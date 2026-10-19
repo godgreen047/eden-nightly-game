@@ -31,6 +31,13 @@ val autoVersion = (((System.currentTimeMillis() / 1000) - 1451606400) / 10).toIn
 
 val edenDir = project(":Eden").projectDir
 
+// This optional environment flag is used only by our isolated A/B performance lab.
+// A distinct Android application ID prevents overwriting an existing Eden install.
+val performanceLabVariant = System.getenv("EDEN_PERFLAB_VARIANT")?.takeIf { it.isNotBlank() }
+check(performanceLabVariant == null || performanceLabVariant in setOf("baseline", "sd8gen1")) {
+    "Unknown EDEN_PERFLAB_VARIANT: $performanceLabVariant"
+}
+
 @Suppress("UnstableApiUsage")
 android {
     namespace = "org.yuzu.yuzu_emu"
@@ -135,7 +142,13 @@ android {
                 signingConfigs.getByName("default")
             }
 
-            if (isNightly) {
+            if (performanceLabVariant != null) {
+                // Keep PerfLab A and PerfLab B isolated from each other and
+                // from the public Game Booster app, including saves and caches.
+                applicationIdSuffix = ".perflab$performanceLabVariant"
+                val label = if (performanceLabVariant == "baseline") " PerfLab A" else " PerfLab B"
+                manifestPlaceholders += mapOf("appNameSuffix" to label)
+            } else if (isNightly) {
                 applicationIdSuffix = ".nightly"
                 manifestPlaceholders += mapOf("appNameSuffix" to " Nightly")
             } else {
@@ -266,9 +279,12 @@ android {
 
     productFlavors.all {
         val currentName = manifestPlaceholders["appNameBase"] as? String ?: "Eden"
-        val suffix = if (isNightly) " Nightly" else ""
+        val suffix = when (performanceLabVariant) {
+            "baseline" -> " PerfLab A"
+            "sd8gen1" -> " PerfLab B"
+            else -> if (isNightly) " Nightly" else ""
+        }
 
-        // apply nightly suffix I/A
         resValue("string", "app_name_suffixed", "$currentName$suffix")
         resValue("string", "app_name", "Eden$suffix")
     }
