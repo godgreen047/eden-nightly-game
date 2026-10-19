@@ -24,13 +24,13 @@ jobs:
           fetch-tags: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Integrate Eden upstream nightly of October 16
+      - name: Integrate Eden upstream nightly of October 18
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch https://git.eden-emu.dev/eden-emu/eden.git master
           git merge --no-edit FETCH_HEAD
-          git merge-base --is-ancestor e0d47f2790 HEAD || { echo "Required October 16 Nightly commit not found"; exit 1; }
+          git merge-base --is-ancestor de7e6e01d4 HEAD || { echo "Required October 18 Nightly commit not found"; exit 1; }
           git submodule update --init --recursive
 
       - name: Set build information
@@ -50,7 +50,7 @@ jobs:
           echo "Short commit: $EDEN_SHORT"
           echo "Build date: $BUILD_DATE"
           echo "LTO: OFF"
-          echo "Nightly: October 16 - e0d47f2790 integrated"
+          echo "Nightly: October 18 - de7e6e01d4 integrated"
           echo "================================"
 
       - name: Create build information file
@@ -58,10 +58,10 @@ jobs:
           mkdir -p artifacts
 
           cat > artifacts/BUILD_INFO.txt <<EOF
-          Eden Game Booster - October 16 Nightly
+          Eden Game Booster - October 18 Nightly
 
           Integrated upstream commit:
-          e0d47f2790
+          de7e6e01d4
 
           Eden upstream/custom commit:
           $EDEN_COMMIT
@@ -113,7 +113,7 @@ jobs:
           sudo apt-get install -y glslang-tools
           glslangValidator --version
 
-      - name: Build Eden Standard No LTO October 16 Nightly
+      - name: Build Eden Standard No LTO October 18 Nightly
         run: |
           chmod +x .ci/android/build.sh
           ./.ci/android/build.sh -t standard -b Release
@@ -121,7 +121,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Eden-GameBooster-Oct16-Nightly-NoLTO
+          name: Eden-GameBooster-Oct18-Nightly-NoLTO
           path: |
             artifacts/*.apk
             artifacts/BUILD_INFO.txt
