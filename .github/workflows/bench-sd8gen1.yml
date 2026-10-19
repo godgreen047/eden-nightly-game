@@ -1,0 +1,115 @@
+name: SD8 Gen 1 Performance A-B (Experimental)
+run-name: SD8 Gen 1 CPU A-B - ${{ github.ref_name }} - ${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - experiment/sd8gen1-performance-v1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Android ${{ matrix.profile }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [baseline, sd8gen1]
+    steps:
+      - name: Checkout pinned experiment source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Resolve experimental build options
+        shell: bash
+        run: |
+          if [ "${{ matrix.profile }}" = "sd8gen1" ]; then
+            echo "PRESET=sd8gen1" >> "$GITHUB_ENV"
+            echo "TUNING=armv8.2-a+lse+rcpc / cortex-x2" >> "$GITHUB_ENV"
+          else
+            echo "PRESET=custom" >> "$GITHUB_ENV"
+            echo "TUNING=none (control)" >> "$GITHUB_ENV"
+          fi
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android build dependencies
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "ndk;28.2.13676358" \
+            "cmake;3.31.6"
+
+      - name: Install glslang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y glslang-tools
+          glslangValidator --version
+
+      - name: Check target-specific compiler flags
+        shell: bash
+        run: |
+          if [ "$PRESET" = "sd8gen1" ]; then
+            CLANG="${ANDROID_HOME}/ndk/28.2.13676358/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+            printf 'int test_cpu_flags(void) { return 1; }\n' | \
+              "$CLANG" --target=aarch64-linux-android33 \
+                -march=armv8.2-a+lse+rcpc -mtune=cortex-x2 \
+                -x c -c - -o /tmp/sd8gen1-flags.o
+          fi
+
+      - name: Build Eden Standard ARM64 ${{ matrix.profile }} (No LTO override)
+        shell: bash
+        run: |
+          chmod +x .ci/android/build.sh
+          ./.ci/android/build.sh -t standard -b Release \
+            "-DYUZU_BUILD_PRESET=$PRESET" \
+            -DENABLE_LSFG=ON \
+            -DENABLE_RESHADE=ON
+
+      - name: Create experiment manifest
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          cat > artifacts/BUILD_INFO.txt <<EOF
+          Eden Game Booster - SD8 Gen 1 CPU A/B Experiment
+          Profile: ${{ matrix.profile }}
+          YUZU_BUILD_PRESET: $PRESET
+          Compiler tuning: $TUNING
+          Source commit: $GITHUB_SHA
+          Reference release: v2.1.0-gamebooster-beta
+          GPU/Vulkan/shader changes: NONE
+          LSFG: ON (user provides Lossless.dll)
+          ReShade: ON
+          Game Booster: existing fork configuration
+          GitHub run: $GITHUB_RUN_ID
+          Validation: CPU tuning NOT tested on-device yet
+          EOF
+          echo "Packaged APK files:"
+          ls -lh artifacts/
+          test -n "$(find artifacts -maxdepth 1 -name '*.apk' -print -quit)"
+
+      - name: Upload test APK and manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: Eden-SD8G1-${{ matrix.profile }}-AB
+          path: |
+            artifacts/*.apk
+            artifacts/BUILD_INFO.txt
+          if-no-files-found: error
+          retention-days: 30
