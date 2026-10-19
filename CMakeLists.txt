@@ -343,7 +343,7 @@ if (CXX_GCC OR CXX_CLANG)
         endif()
     elseif(ARCHITECTURE_arm64)
         # See https://gcc.gnu.org/onlinedocs/gcc/AArch64-Options.html
-        set(YUZU_BUILD_PRESET "custom" CACHE STRING "Build preset to use. One of: custom, generic, optimized, armv9, native")
+        set(YUZU_BUILD_PRESET "custom" CACHE STRING "Build preset to use. One of: custom, generic, optimized, armv9, sd8gen1, native")
         set(mtune generic)
         if (${YUZU_BUILD_PRESET} STREQUAL "generic")
             set(march armv8-a)
@@ -351,6 +351,13 @@ if (CXX_GCC OR CXX_CLANG)
             set(march armv8.2-a+lse+rcpc)
         elseif (${YUZU_BUILD_PRESET} STREQUAL "armv9")
             set(march armv9-a)
+        elseif (${YUZU_BUILD_PRESET} STREQUAL "sd8gen1")
+            # Experimental SD8 Gen 1: allow ARMv8.2 atomics/RCpc available on
+            # Cortex-X2/A710/A510, and tune scheduling for the X2 performance core.
+            # -mtune does not add CPU-specific instructions; keep a portable ISA
+            # across this SoC’s heterogeneous cores. Validate on-device first.
+            set(march armv8.2-a+lse+rcpc)
+            set(mtune cortex-x2)
         endif()
     endif()
 
