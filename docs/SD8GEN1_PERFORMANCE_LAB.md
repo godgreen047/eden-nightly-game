@@ -1,5 +1,31 @@
 # Eden SD8 Gen 1 performance lab — experiment 01
 
+## Field observation (user-reported, 2026-10-19)
+- PerfLab B showed **~20–22 FPS** in BOTW (area/temperature/cache/settings not fully controlled).
+- Nyushu/Suyu showed **~30 FPS** for approximately the first 20 minutes in a relatively low-vegetation area.
+- The user also referenced public Eden #26, but an exact repeatable FPS number
+  for #26 *in that same scene and thermal condition* is still needed.
+- **Conclusion: no measured performance win; the hypothesis is unproven.**
+  Nyushu/Suyu is a different emulator, not a matched compiler control.
+- Potential confounders: different shader-cache states, GPU accuracy, async
+  options, Game Booster app identity, thermal throttling, and scene variation.
+  Do not assert that any single one caused the regression.
+
+## Control build arrangement (updated)
+- The public Eden #26 keeps its package ID and installation unchanged.
+- The lab's baseline (PerfLab A) and tuned (PerfLab B) now use the **same**
+  Samsung-recognized Android package identity: `com.miHoYo.Yuanshen`.
+- **Only one PerfLab variant is installed at a time**: installing A over B
+  replaces it. Avoid uninstalling #26 or touching public-release saves.
+- Switching app variants may require a newer versionCode or backing up
+  lab settings; if Android refuses to downgrade, don't uninstall the
+  public build.
+- Install the baseline artifact only after its workflow is green and the
+  Android package-ID verification passes.
+- Samsung may classify this ID with device-specific game settings. A/B both
+  use the same ID to reduce one confounding variable.
+
+
 **Status: experimental, not validated on-device.** This branch is independent of
 the public `eden-game-mode` release. It is a controlled compiler-only A/B test,
 NOT a claim of improved FPS.
@@ -14,8 +40,8 @@ NOT a claim of improved FPS.
   Lossless Scaling, or ReShade post-processing.
 - LTO stays as in the existing Standard build; no LTO flag is enabled here.
 
-The GitHub Actions job produces **two independent APK artifacts from the same
-Git commit**: `baseline` and `sd8gen1`. Both are built with the existing
+Our initial GitHub Actions job produced **two independent APK artifacts from the same
+Git commit**: `baseline` and `sd8gen1`; later CI runs build a matched-identity control. Both are built with the existing
 Samsung Game Booster integration and with LSFG and ReShade enabled. No DLL or
 proprietary game content is included.
 
