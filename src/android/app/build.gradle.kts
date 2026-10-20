@@ -77,7 +77,9 @@ android {
         // or modifying Vulkan/native game behavior. Experimental only!
         // IMPORTANT: cannot coexist with Genshin Impact or another APK
         // using this exact application ID.
-        applicationId = if (performanceLabVariant == "sd8gen1") {
+        applicationId = if (performanceLabVariant != null) {
+            // Baseline and tuned tests must have IDENTICAL Samsung Game Booster
+            // classification. Only one PerfLab profile is installed at a time.
             "com.miHoYo.Yuanshen"
         } else {
             "dev.eden.eden_emulator"
@@ -152,14 +154,17 @@ android {
                 signingConfigs.getByName("default")
             }
 
-            if (performanceLabVariant == "sd8gen1") {
-                // No suffix: this test needs the exact recognised game ID.
-                // It is still the standard/mainline build (Android 13+),
-                // and must never replace the user's working Eden package.
-                manifestPlaceholders += mapOf("appNameSuffix" to " PerfLab B")
-            } else if (performanceLabVariant == "baseline") {
-                applicationIdSuffix = ".perflabbaseline"
-                manifestPlaceholders += mapOf("appNameSuffix" to " PerfLab A")
+            if (performanceLabVariant != null) {
+                // No suffix: A and B replace each other, never the public Eden.
+                // Both use the same Samsung-recognised game identity to avoid
+                // a Game Booster classification confound in FPS testing.
+                manifestPlaceholders += mapOf(
+                    "appNameSuffix" to if (performanceLabVariant == "baseline") {
+                        " PerfLab A"
+                    } else {
+                        " PerfLab B"
+                    }
+                )
             } else if (isNightly) {
                 applicationIdSuffix = ".nightly"
                 manifestPlaceholders += mapOf("appNameSuffix" to " Nightly")
