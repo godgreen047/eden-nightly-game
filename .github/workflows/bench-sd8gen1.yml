@@ -17,8 +17,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Only build PerfLab B; the user keeps public Eden #26 as comparison.
-        profile: [sd8gen1]
+        # Baseline reuses PerfLab B package ID; installing it replaces B,
+        # without adding a third Eden or affecting the public #26.
+        profile: [baseline]
     steps:
       - name: Checkout pinned experiment source
         uses: actions/checkout@v4
@@ -100,10 +101,11 @@ jobs:
           ReShade: ON
           Game Booster: existing fork config + known Samsung-recognised app identity (experimental)
           GitHub run: $GITHUB_RUN_ID
-          Android package ID: com.miHoYo.Yuanshen (mainline Android build, NOT GenshinSpoof)
+          Android package ID: com.miHoYo.Yuanshen (shared by PerfLab A/B, mainline)
           App settings/saves/cache isolated from public Eden #26
+          A/B installation: SAME package ID; install only one experimental profile at a time
           Warning: conflicts with Genshin Impact and any installed GenshinSpoof app
-          Validation: CPU tuning NOT tested on-device yet
+          Validation: B observed 20-22 FPS versus Nyushu/Suyu ~30 FPS in a user test; repeat under controlled conditions
           EOF
           echo "Packaged APK files:"
           ls -lh artifacts/
