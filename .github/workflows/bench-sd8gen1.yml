@@ -17,7 +17,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        profile: [baseline, sd8gen1]
+        # Only build PerfLab B; the user keeps public Eden #26 as comparison.
+        profile: [sd8gen1]
     steps:
       - name: Checkout pinned experiment source
         uses: actions/checkout@v4
@@ -97,10 +98,11 @@ jobs:
           GPU/Vulkan/shader changes: NONE
           LSFG: ON (user provides Lossless.dll)
           ReShade: ON
-          Game Booster: existing fork configuration
+          Game Booster: existing fork config + known Samsung-recognised app identity (experimental)
           GitHub run: $GITHUB_RUN_ID
-          Android package ID: dev.eden.eden_emulator.perflab${{ matrix.profile }}
-          App settings/saves/cache isolated from public Eden
+          Android package ID: com.miHoYo.Yuanshen (mainline Android build, NOT GenshinSpoof)
+          App settings/saves/cache isolated from public Eden #26
+          Warning: conflicts with Genshin Impact and any installed GenshinSpoof app
           Validation: CPU tuning NOT tested on-device yet
           EOF
           echo "Packaged APK files:"
@@ -111,7 +113,7 @@ jobs:
         shell: bash
         run: |
           apk_file="$(find artifacts -maxdepth 1 -name '*.apk' -print -quit)"
-          expected="dev.eden.eden_emulator.perflab${{ matrix.profile }}"
+          expected="com.miHoYo.Yuanshen"
           actual="$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk_file" | sed -n "s/^package: name='\\([^']*\\)'.*/\\1/p" | head -n1)"
           echo "Built APK app ID: $actual"
           test "$actual" = "$expected" || { echo "APK package ID not isolated!"; exit 1; }
