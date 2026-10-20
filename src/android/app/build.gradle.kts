@@ -71,7 +71,17 @@ android {
     }
 
     defaultConfig {
-        applicationId = "dev.eden.eden_emulator"
+        // Samsung's game classification can depend on the package ID.
+        // The isolated SD8G1 test opts into the known Game Booster-compatible
+        // Genshin package identity WITHOUT enabling the GenshinSpoof flavor
+        // or modifying Vulkan/native game behavior. Experimental only!
+        // IMPORTANT: cannot coexist with Genshin Impact or another APK
+        // using this exact application ID.
+        applicationId = if (performanceLabVariant == "sd8gen1") {
+            "com.miHoYo.Yuanshen"
+        } else {
+            "dev.eden.eden_emulator"
+        }
         minSdk = 24
         targetSdk = 36
         versionName = getGitVersion()
@@ -142,12 +152,14 @@ android {
                 signingConfigs.getByName("default")
             }
 
-            if (performanceLabVariant != null) {
-                // Keep PerfLab A and PerfLab B isolated from each other and
-                // from the public Game Booster app, including saves and caches.
-                applicationIdSuffix = ".perflab$performanceLabVariant"
-                val label = if (performanceLabVariant == "baseline") " PerfLab A" else " PerfLab B"
-                manifestPlaceholders += mapOf("appNameSuffix" to label)
+            if (performanceLabVariant == "sd8gen1") {
+                // No suffix: this test needs the exact recognised game ID.
+                // It is still the standard/mainline build (Android 13+),
+                // and must never replace the user's working Eden package.
+                manifestPlaceholders += mapOf("appNameSuffix" to " PerfLab B")
+            } else if (performanceLabVariant == "baseline") {
+                applicationIdSuffix = ".perflabbaseline"
+                manifestPlaceholders += mapOf("appNameSuffix" to " PerfLab A")
             } else if (isNightly) {
                 applicationIdSuffix = ".nightly"
                 manifestPlaceholders += mapOf("appNameSuffix" to " Nightly")
