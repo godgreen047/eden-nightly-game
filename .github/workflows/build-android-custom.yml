@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Eden
+      - name: Checkout Eden Game Booster fork
         uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -24,14 +24,20 @@ jobs:
           fetch-tags: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Integrate Eden upstream nightly of October 18
+      - name: Integrate latest Eden upstream
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch https://git.eden-emu.dev/eden-emu/eden.git master
+          UPSTREAM_COMMIT=$(git rev-parse FETCH_HEAD)
+          UPSTREAM_SHORT=$(git rev-parse --short FETCH_HEAD)
+          UPSTREAM_DATE=$(git show -s --format=%cI FETCH_HEAD)
           git merge --no-edit FETCH_HEAD
-          git merge-base --is-ancestor de7e6e01d4 HEAD || { echo "Required October 18 Nightly commit not found"; exit 1; }
           git submodule update --init --recursive
+
+          echo "UPSTREAM_COMMIT=$UPSTREAM_COMMIT" >> "$GITHUB_ENV"
+          echo "UPSTREAM_SHORT=$UPSTREAM_SHORT" >> "$GITHUB_ENV"
+          echo "UPSTREAM_DATE=$UPSTREAM_DATE" >> "$GITHUB_ENV"
 
       - name: Set build information
         run: |
@@ -44,13 +50,15 @@ jobs:
           echo "BUILD_DATE=$BUILD_DATE" >> "$GITHUB_ENV"
 
           echo "================================"
-          echo "EDEN BUILD INFORMATION"
+          echo "EDEN GAME BOOSTER BUILD"
           echo "================================"
-          echo "Commit: $EDEN_COMMIT"
-          echo "Short commit: $EDEN_SHORT"
+          echo "Upstream commit: $UPSTREAM_COMMIT"
+          echo "Upstream short: $UPSTREAM_SHORT"
+          echo "Upstream commit date: $UPSTREAM_DATE"
+          echo "Merged build commit: $EDEN_COMMIT"
           echo "Build date: $BUILD_DATE"
           echo "LTO: OFF"
-          echo "Nightly: October 18 - de7e6e01d4 integrated"
+          echo "Game Booster: ENABLED"
           echo "================================"
 
       - name: Create build information file
@@ -58,10 +66,16 @@ jobs:
           mkdir -p artifacts
 
           cat > artifacts/BUILD_INFO.txt <<EOF
-          Eden Game Booster - October 18 Nightly
+          Eden Game Booster - Latest Upstream
 
           Integrated upstream commit:
-          de7e6e01d4
+          $UPSTREAM_COMMIT
+
+          Integrated upstream short commit:
+          $UPSTREAM_SHORT
+
+          Upstream commit date:
+          $UPSTREAM_DATE
 
           Eden upstream/custom commit:
           $EDEN_COMMIT
@@ -113,7 +127,7 @@ jobs:
           sudo apt-get install -y glslang-tools
           glslangValidator --version
 
-      - name: Build Eden Standard No LTO October 18 Nightly
+      - name: Build Eden Standard No LTO
         run: |
           chmod +x .ci/android/build.sh
           ./.ci/android/build.sh -t standard -b Release
@@ -121,7 +135,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: Eden-GameBooster-Oct18-Nightly-NoLTO
+          name: Eden-GameBooster-Latest-NoLTO
           path: |
             artifacts/*.apk
             artifacts/BUILD_INFO.txt
