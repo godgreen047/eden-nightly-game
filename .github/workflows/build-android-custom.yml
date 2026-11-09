@@ -1,3 +1,4 @@
+# Rebuild trigger: Eden Nightly Nov 08 2026 (ae60f8e7f8)
 name: Build Eden Android Custom
 run-name: Build Eden Android Custom - ${{ github.ref_name }}
 
@@ -114,11 +115,11 @@ jobs:
       - name: Install Android build dependencies
         run: |
           yes | sdkmanager --licenses || true
-          sdkmanager \
-            "platform-tools" \
-            "platforms;android-36" \
-            "build-tools;36.0.0" \
-            "ndk;28.2.13676358" \
+          sdkmanager \\
+            "platform-tools" \\
+            "platforms;android-36" \\
+            "build-tools;36.0.0" \\
+            "ndk;28.2.13676358" \\
             "cmake;3.31.6"
 
       - name: Install glslang
